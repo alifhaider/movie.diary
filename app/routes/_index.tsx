@@ -9,5 +9,9 @@ export const meta: MetaFunction = () => {
 }
 
 export default function Index() {
-	return <div></div>
+	return (
+		<main className="container space-y-20">
+			<h1 className="">Make a movie playlist</h1>
+		</main>
+	)
 }

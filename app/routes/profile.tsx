@@ -1,4 +1,4 @@
-import { LoaderFunctionArgs } from '@remix-run/node'
+import { LoaderFunctionArgs, redirect } from '@remix-run/node'
 import { useLoaderData } from '@remix-run/react'
 import { PageTitle } from '~/components/Helpers'
 import { prisma } from '~/db.server'
@@ -6,6 +6,9 @@ import { requireUserId } from '~/utils/auth.server'
 
 export async function loader({ request }: LoaderFunctionArgs) {
 	const userId = await requireUserId(request)
+	if (!userId) {
+		throw redirect('/login')
+	}
 	const user = await prisma.user.findUnique({
 		where: { id: userId },
 		select: {
@@ -19,7 +22,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
 							id: true,
 							title: true,
 							releaseDate: true,
-							description: true,
 						},
 					},
 				},
@@ -31,7 +33,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
 							id: true,
 							title: true,
 							releaseDate: true,
-							description: true,
 						},
 					},
 				},
@@ -50,8 +51,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
 export default function Profile() {
 	const data = useLoaderData<typeof loader>()
 	return (
-    <main className="container flex flex-col space-y-10">
-      <PageTitle>Profile</PageTitle>
+		<main className="container flex flex-col space-y-10">
+			<PageTitle>Profile</PageTitle>
 			<div className="flex items-center gap-4 space-y-8">
 				<div className="w-10 h-10 rounded-md bg-slate-400 mt-10"></div>
 				<div>
