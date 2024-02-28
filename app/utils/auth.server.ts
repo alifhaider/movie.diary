@@ -31,7 +31,7 @@ authenticator.use(
 
     return user.id;
   }),
-  FormStrategy.name
+  "sign-in"
 );
 
 export async function requireUserId(
@@ -52,6 +52,7 @@ export async function requireUserId(
   const userId = await authenticator.isAuthenticated(request, {
     failureRedirect,
   });
+  console.log("userId", userId);
   return userId;
 }
 

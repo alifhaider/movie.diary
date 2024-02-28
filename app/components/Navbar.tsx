@@ -1,7 +1,11 @@
-import { Link } from "@remix-run/react";
+import { Form, Link, useLoaderData } from "@remix-run/react";
 import { ModeToggle } from "./mode-toggle";
+import { authenticator, requireUserId } from "~/utils/auth.server";
+import { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
+import { Button } from "./ui/button";
+import { prisma } from "~/db.server";
 
-const Navbar = () => {
+const Navbar = ({ isAuthenticated }: { isAuthenticated: Boolean }) => {
   return (
     <header className="container flex justify-between items-center py-10">
       <div className="w-full">
@@ -13,7 +17,14 @@ const Navbar = () => {
 
       <nav className="flex gap-8 items-center">
         <Link to="/profile">Profile</Link>
-        <Link to="/login">Login</Link>
+        {isAuthenticated ? (
+          <Form action="/logout" method="POST">
+            <Button type="submit">Logout</Button>
+          </Form>
+        ) : (
+          <Link to="/login">Login</Link>
+        )}
+
         <ModeToggle />
       </nav>
     </header>

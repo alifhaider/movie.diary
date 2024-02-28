@@ -18,11 +18,28 @@ import {
 } from "remix-themes";
 import { themeSessionResolver } from "./sessions.server";
 import Navbar from "./components/Navbar";
+import { authenticator, requireUserId } from "./utils/auth.server";
+import { prisma } from "./db.server";
 
 export async function loader({ request }: LoaderFunctionArgs) {
+  const userId = await authenticator.isAuthenticated(request);
   const { getTheme } = await themeSessionResolver(request);
+
+  const user = userId
+    ? await prisma.user.findUnique({
+        where: {
+          id: userId,
+        },
+      })
+    : null;
+
+  if (userId && !user) {
+    console.info("User not found in the database, logging out");
+    await authenticator.logout(request, { redirectTo: "/login" });
+  }
   return {
     theme: getTheme(),
+    user,
   };
 }
 
@@ -43,6 +60,8 @@ export default function AppWithProviders() {
 export function App() {
   const data = useLoaderData<typeof loader>();
   const [theme] = useTheme();
+
+  const isAuthenticated = Boolean(data.user);
   return (
     <html lang="en" className={clsx(theme)}>
       <head>
@@ -53,7 +72,7 @@ export function App() {
         <Links />
       </head>
       <body className="min-h-screen flex flex-col">
-        <Navbar />
+        <Navbar isAuthenticated={isAuthenticated} />
         <Outlet />
         <ScrollRestoration />
         <Scripts />
