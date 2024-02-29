@@ -1,5 +1,6 @@
 {
   "name": "movie.diary",
+  "description": "A movie diary app: keep track of the movies you've watched and want to watch.",
   "private": true,
   "sideEffects": false,
   "type": "module",
