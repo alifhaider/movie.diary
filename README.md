@@ -1,10 +1,26 @@
-# Welcome to Remix!
+# Movie-Diary App
 
-- [Remix Docs](https://remix.run/docs)
+Track your watched Movies
+
+## Setup
+To set up the project, you can run the following command:
+
+```sh
+npm install
+npm run setup
+```
+
+This command performs the following tasks:
+
+- `prisma generate:` This command reads your Prisma schema and generates the Prisma Client code. Prisma Client is an auto-generated and type-safe query builder for Node.js & TypeScript.
+
+- `prisma migrate deploy:` This command applies the database schema changes. It's a way to keep your database schema in sync with the Prisma schema.
+
+- `prisma db seed:` This command seeds your database. It's a way to populate your database with initial data. I already have a seed script to populate db
+
+Please ensure that you have the Prisma CLI installed and configured before running this command.
 
 ## Development
-
-From your terminal:
 
 ```sh
 npm run dev
