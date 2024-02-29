@@ -52,7 +52,6 @@ export async function requireUserId(
   const userId = await authenticator.isAuthenticated(request, {
     failureRedirect,
   });
-  console.log("userId", userId);
   return userId;
 }
 

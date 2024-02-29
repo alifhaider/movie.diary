@@ -7,6 +7,7 @@ import {
   createUser,
 } from "./seed-utils";
 import { faker } from "@faker-js/faker";
+import { connect } from "node:http2";
 
 async function seed() {
   console.log("🌱 Seeding...");
@@ -15,7 +16,10 @@ async function seed() {
   console.time("🧹 Cleaned up the database...");
   await prisma.user.deleteMany({ where: {} });
   await prisma.movie.deleteMany({ where: {} });
-  await prisma.note.deleteMany({ where: {} });
+  await prisma.password.deleteMany({ where: {} });
+  await prisma.watchedMovie.deleteMany({ where: {} });
+  await prisma.watchNextMovie.deleteMany({ where: {} });
+
   console.timeEnd("🧹 Cleaned up the database...");
 
   const totalMovies = 100;
@@ -33,49 +37,48 @@ async function seed() {
   );
   console.timeEnd(`✅ Created ${totalMovies} movies...`);
 
+  const shuffledMovies = faker.helpers.shuffle(movies);
+  const watchedMovies = shuffledMovies.slice(0, 5);
+  const watchNextMovies = shuffledMovies.slice(5, 10);
+  const watchedAt = faker.date.between({
+    from: new Date(2020, 1, 1),
+    to: new Date(),
+  });
+  const createUserWithMovies = async () => {
+    const userData = createUser();
+    const user = await prisma.user.create({
+      data: {
+        ...userData,
+        watchedMovies: {
+          create: watchedMovies.map((movie) => ({
+            movieId: movie.id,
+            watchedAt: faker.date.between({
+              from: new Date(2020, 1, 1),
+              to: new Date(),
+            }),
+          })),
+        },
+        watchNextMovies: {
+          create: faker.helpers
+            .shuffle(movies)
+            .slice(10, 20)
+            .map((movie) => ({
+              movieId: movie.id,
+            })),
+        },
+        password: {
+          create: { ...createPassword(userData.username) },
+        },
+      },
+    });
+    return user;
+  };
+
   const totdalUsers = 20;
   console.time(`✅ Created ${totdalUsers} users...`);
   const users = await Promise.all(
-    Array.from({ length: totdalUsers }, async (_, index) => {
-      const userData = createUser();
-      const user = await prisma.user.create({
-        data: {
-          ...userData,
-          watchedMovies: {
-            connect: faker.helpers
-              .shuffle(movies)
-              .slice(0, 5)
-              .map((movie) => ({
-                id: movie.id,
-              })),
-          },
-          watchNextMovies: {
-            connect: faker.helpers
-              .shuffle(movies)
-              .slice(0, 5)
-              .map((movie) => ({
-                id: movie.id,
-              })),
-          },
-          notes: {
-            create: faker.helpers
-              .shuffle(movies)
-              .slice(0, 5)
-              .map((movie) => ({
-                ...createNote(),
-                movie: {
-                  connect: {
-                    id: movie.id,
-                  },
-                },
-              })),
-          },
-          password: {
-            create: { ...createPassword(userData.username) },
-          },
-        },
-      });
-      return user;
+    Array.from({ length: totdalUsers }, async () => {
+      return await createUserWithMovies();
     })
   );
   console.timeEnd(`✅ Created ${totdalUsers} users...`);

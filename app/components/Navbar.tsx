@@ -7,7 +7,7 @@ import { prisma } from "~/db.server";
 
 const Navbar = ({ isAuthenticated }: { isAuthenticated: Boolean }) => {
   return (
-    <header className="container flex justify-between items-center py-10">
+    <header className="container flex justify-between items-center py-10 border-b">
       <div className="w-full">
         <Link to="/">
           <span>Movie</span>
@@ -17,10 +17,15 @@ const Navbar = ({ isAuthenticated }: { isAuthenticated: Boolean }) => {
 
       <nav className="flex gap-8 items-center">
         <Link to="/profile">Profile</Link>
+        <Link to="/movies">Movies</Link>
         {isAuthenticated ? (
-          <Form action="/logout" method="POST">
-            <Button type="submit">Logout</Button>
-          </Form>
+          <>
+            <Form action="/logout" method="POST">
+              <Button variant="secondary" type="submit">
+                Logout
+              </Button>
+            </Form>
+          </>
         ) : (
           <Link to="/login">Login</Link>
         )}

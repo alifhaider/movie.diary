@@ -38,7 +38,7 @@ export async function action({ request }: ActionFunctionArgs) {
 export default function Login() {
   return (
     <main className="container flex-1 h-full flex flex-col items-center justify-center">
-      <Card className="max-w-2xl w-full">
+      <Card className="max-w-xl w-full">
         <CardHeader>
           <CardTitle className="text-center">Login</CardTitle>
         </CardHeader>

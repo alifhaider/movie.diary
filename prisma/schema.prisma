@@ -17,30 +17,14 @@ model User {
   username String  @unique
   password Password?
 
-  notes   Note[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   image   String?
-
-  watchedMovies Movie[] @relation("watchedMovies")
-  watchNextMovies Movie[] @relation("watchNextMovies")
-
-  suggestions Movie[] @relation("suggestions")
-}
-
-model Note {
-  id        String   @id @unique @default(cuid())
-  content   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  movie   Movie   @relation(fields: [movieId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  movieId String
-
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  userId String
+  
+  watchedMovies WatchedMovie[] 
+  watchNextMovies WatchNextMovie[]
 }
 
 model Password {
@@ -60,10 +44,39 @@ model Movie {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  watchedBy   User[] @relation("watchedMovies")
-  watchNextBy User[] @relation("watchNextMovies")
+  watchedBy WatchedMovie[]
+  watchNextBy WatchNextMovie[]
 
-  suggestedBy User[] @relation("suggestions")
+}
 
-  notes Note[]
+model WatchedMovie {
+  id       String   @id @unique @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  watchedAt DateTime @default(now())
+
+  note  String?
+
+  movie   Movie   @relation(fields: [movieId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  movieId String
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId String
+
+
+}
+
+model WatchNextMovie {
+  id       String   @id @unique @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  movie   Movie   @relation(fields: [movieId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  movieId String
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId String
+
+
 }
