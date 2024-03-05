@@ -21,6 +21,7 @@ export function createUser() {
 
 	return {
 		username,
+		image: faker.image.avatar(),
 		email: `${username}@example.com`,
 	}
 }
@@ -28,8 +29,9 @@ export function createUser() {
 export function createMovie() {
 	return {
 		title: faker.word.noun({ length: { min: 5, max: 7 } }),
-		description: faker.lorem.paragraph(),
+		plot: faker.lorem.paragraph(),
 		releaseDate: faker.date.past({ years: 10 }).toISOString(),
+		poster: faker.image.url(),
 		imdbLink: faker.internet.url(),
 	}
 }

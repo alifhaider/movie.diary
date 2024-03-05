@@ -37,9 +37,11 @@ model Password {
 model Movie {
   id          String   @id @unique @default(cuid())
   title       String
-  description String?
+  plot String?
   releaseDate DateTime?
   imdbLink    String?
+
+  poster       String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -1,5 +1,9 @@
 import { cssBundleHref } from '@remix-run/css-bundle'
-import type { LinksFunction, LoaderFunctionArgs } from '@remix-run/node'
+import type {
+	LinksFunction,
+	LoaderFunctionArgs,
+	MetaFunction,
+} from '@remix-run/node'
 import {
 	Links,
 	LiveReload,
@@ -16,6 +20,7 @@ import { themeSessionResolver } from './sessions.server'
 import Navbar from './components/Navbar'
 import { authenticator, requireUserId } from './utils/auth.server'
 import { prisma } from './db.server'
+import { Toaster } from './components/ui/toaster'
 
 export async function loader({ request }: LoaderFunctionArgs) {
 	const userId = await authenticator.isAuthenticated(request)
@@ -44,6 +49,13 @@ export const links: LinksFunction = () => [
 	{ rel: 'stylesheet', href: stylesheet },
 ]
 
+export const meta: MetaFunction = ({ location }) => {
+	const routeName = location.pathname.split('/')[1].toLocaleUpperCase()
+	const title = routeName === '' ? 'Movieary' : `Movieary | ${routeName}`
+
+	return [{ title, description: 'Keep track of your movies' }]
+}
+
 export default function AppWithProviders() {
 	const data = useLoaderData<typeof loader>()
 	return (
@@ -69,6 +81,7 @@ export function App() {
 			</head>
 			<body className="min-h-screen flex flex-col">
 				<Navbar isAuthenticated={isAuthenticated} />
+				<Toaster />
 				<Outlet />
 				<ScrollRestoration />
 				<Scripts />

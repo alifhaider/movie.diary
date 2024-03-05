@@ -1,15 +1,18 @@
 import { ActionFunctionArgs, LoaderFunctionArgs, json } from '@remix-run/node'
 import {
 	Form,
+	Link,
+	Outlet,
 	useFetcher,
 	useLoaderData,
 	useSearchParams,
 	useSubmit,
 } from '@remix-run/react'
 import { format } from 'date-fns'
-import { CalendarIcon } from 'lucide-react'
+import { CalendarIcon, PlusSquareIcon, Telescope } from 'lucide-react'
 import { useState } from 'react'
 import invariant from 'tiny-invariant'
+import { PageTitle } from '~/components/Helpers'
 import { Button } from '~/components/ui/button'
 import { Calendar } from '~/components/ui/calendar'
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
@@ -17,7 +20,6 @@ import {
 	Dialog,
 	DialogContent,
 	DialogFooter,
-	DialogHeader,
 	DialogTrigger,
 } from '~/components/ui/dialog'
 import { Input } from '~/components/ui/input'
@@ -32,6 +34,7 @@ import { cn } from '~/lib/utils'
 import { authenticator, requireUserId } from '~/utils/auth.server'
 
 export async function loader({ request }: LoaderFunctionArgs) {
+	console.log('running loader')
 	const userId = await authenticator.isAuthenticated(request)
 	const url = new URL(request.url)
 	const search = url.searchParams.get('s')
@@ -51,7 +54,13 @@ export async function loader({ request }: LoaderFunctionArgs) {
 			id: true,
 			title: true,
 			releaseDate: true,
-			description: true,
+			plot: true,
+			poster: true,
+			watchedBy: {
+				select: {
+					note: true,
+				},
+			},
 			_count: {
 				select: {
 					watchedBy: true,
@@ -72,7 +81,6 @@ export async function action({ request }: ActionFunctionArgs) {
 	const movieId = formData.get('movieId')
 	const watchedAt = formData.get('watchedAt')
 
-	console.log('intent', intent, 'movieId', movieId, 'watchedAt', watchedAt)
 	if (!movieId) {
 		return json({ success: false, message: 'movieId is required' }, 400)
 	}
@@ -124,7 +132,7 @@ export default function Movies() {
 	return (
 		<main className="container space-y-20">
 			<div className="flex items-end gap-8">
-				<h1 className="text-7xl font-bold">Movies</h1>
+				<PageTitle>Movies</PageTitle>
 
 				<Form
 					method="get"
@@ -144,21 +152,41 @@ export default function Movies() {
 						Search
 					</Button>
 				</Form>
+
+				<Button asChild variant="outline" className="gap-4">
+					<Link to="add">
+						Add Movie <PlusSquareIcon className="w-4" />
+					</Link>
+				</Button>
 			</div>
+
+			<Outlet />
 
 			<ul className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
 				{movies.map(movie => (
 					<li key={movie.id}>
 						<Card>
 							<CardHeader>
-								<CardTitle className="capitalize">{movie.title}</CardTitle>
-								<span className="text-xs text-right">
-									👁️‍🗨️ {movie._count.watchedBy}
-								</span>
+								<div className="flex gap-8 items-start">
+									<div className="w-20 h-20 bg-slate-400 rounded-md">
+										{movie.poster ? (
+											<img
+												src={movie.poster}
+												alt={movie.title}
+												className="w-full h-full object-cover rounded-md"
+											/>
+										) : null}
+									</div>
+									<div className="space-y-4">
+										<CardTitle className="capitalize">{movie.title}</CardTitle>
+										<div className="flex text-xs text-right items-center gap-2">
+											<Telescope className="w-3" /> {movie._count.watchedBy}
+										</div>
+									</div>
+								</div>
 							</CardHeader>
 							<CardContent className="space-y-10">
-								<p>{movie.id}</p>
-								<p>{movie.description?.slice(0, 30)}...</p>
+								<p>{movie.plot?.slice(0, 30)}...</p>
 
 								{isAuthenticated && (
 									<div className="space-y-2 flex flex-col items-center">
@@ -188,7 +216,7 @@ export default function Movies() {
 
 const MarkAsWatchedDialog = ({ movieId }: { movieId: string }) => {
 	const watchedAtFetcher = useFetcher<typeof action>()
-	const [date, setDate] = useState<Date>(new Date())
+	const [date, setDate] = useState<Date | undefined>(new Date())
 	return (
 		<Dialog>
 			<DialogTrigger asChild>
@@ -231,9 +259,9 @@ const MarkAsWatchedDialog = ({ movieId }: { movieId: string }) => {
 							className="sr-only"
 						/>
 						<input
-							type="text"
+							type="date"
 							name="watchedAt"
-							value={date.toISOString()}
+							value={date?.toISOString()}
 							className="sr-only"
 						/>
 						<Button name="intent" value="watched-at" type="submit">

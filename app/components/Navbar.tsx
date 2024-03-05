@@ -1,9 +1,6 @@
-import { Form, Link, useLoaderData } from '@remix-run/react'
+import { Form, Link } from '@remix-run/react'
 import { ModeToggle } from './mode-toggle'
-import { authenticator, requireUserId } from '~/utils/auth.server'
-import { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/node'
 import { Button } from './ui/button'
-import { prisma } from '~/db.server'
 
 const Navbar = ({ isAuthenticated }: { isAuthenticated: Boolean }) => {
 	return (
@@ -16,10 +13,10 @@ const Navbar = ({ isAuthenticated }: { isAuthenticated: Boolean }) => {
 			</div>
 
 			<nav className="flex gap-8 items-center">
-				<Link to="/profile">Profile</Link>
 				<Link to="/movies">Movies</Link>
 				{isAuthenticated ? (
-					<>
+          <>
+          <Link to="/profile">Profile</Link>
 						<Form action="/logout" method="POST">
 							<Button variant="secondary" type="submit">
 								Logout
