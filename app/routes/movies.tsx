@@ -1,3 +1,4 @@
+import { Movie } from '@prisma/client'
 import { ActionFunctionArgs, LoaderFunctionArgs, json } from '@remix-run/node'
 import {
 	Form,
@@ -11,9 +12,10 @@ import {
 } from '@remix-run/react'
 import { format } from 'date-fns'
 import { CalendarIcon, PlusSquareIcon, Telescope } from 'lucide-react'
-import { memo, useState } from 'react'
+import { memo, useEffect, useState } from 'react'
 import invariant from 'tiny-invariant'
 import { PageTitle } from '~/components/Helpers'
+import { InfiniteScroller } from '~/components/infinite-scroller'
 import { Button } from '~/components/ui/button'
 import { Calendar } from '~/components/ui/calendar'
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
@@ -38,14 +40,22 @@ import { authenticator, requireUserId } from '~/utils/auth.server'
 export async function loader({ request }: LoaderFunctionArgs) {
 	const userId = await authenticator.isAuthenticated(request)
 	const url = new URL(request.url)
+	const page = Number(url.searchParams.get('page') || 0)
 	const search = url.searchParams.get('s')
 
 	const movies = await prisma.movie.findMany({
+		skip: page * 15,
+		take: 15,
 		where: {
 			title: {
 				contains: search ?? '',
 			},
 			watchedBy: {
+				none: {
+					userId: userId ?? undefined,
+				},
+			},
+			watchNextBy: {
 				none: {
 					userId: userId ?? undefined,
 				},
@@ -70,11 +80,10 @@ export async function loader({ request }: LoaderFunctionArgs) {
 			},
 		},
 	})
-	return { movies, isAuthenticated: !!userId }
+	return json({ movies, isAuthenticated: !!userId, page })
 }
 
 export async function action({ request }: ActionFunctionArgs) {
-	console.log('calling action')
 	const userId = await requireUserId(request)
 	const formData = await request.formData()
 
@@ -102,7 +111,6 @@ export async function action({ request }: ActionFunctionArgs) {
 			}
 
 			const isoFormattedDate = new Date(watchedAt.toString()).toISOString()
-			console.log({ isoFormattedDate })
 			await prisma.user.update({
 				where: {
 					id: userId,
@@ -124,8 +132,8 @@ export async function action({ request }: ActionFunctionArgs) {
 				},
 				data: {
 					watchNextMovies: {
-						connect: {
-							id: movieId,
+						create: {
+							movieId: movieId,
 						},
 					},
 				},
@@ -137,11 +145,25 @@ export async function action({ request }: ActionFunctionArgs) {
 }
 
 export default function Movies() {
-	const { movies, isAuthenticated } = useLoaderData<typeof loader>()
+	const {
+		movies: initialMovies,
+		isAuthenticated,
+		page,
+	} = useLoaderData<typeof loader>()
+	const fetcher = useFetcher<typeof loader>()
+	const [movies, setMovies] = useState(initialMovies)
 	const [searchParams] = useSearchParams()
 	const search = searchParams.get('s') ?? ''
 	const submit = useSubmit()
 	const watchNextFetcher = useFetcher()
+
+	useEffect(() => {
+		if (!fetcher.data || fetcher.state === 'loading') {
+			return
+		}
+		const newMovies = fetcher.data.movies
+		setMovies(prevMovies => [...prevMovies, ...newMovies])
+	}, [fetcher.data, fetcher.state])
 
 	return (
 		<main className="container space-y-20">
@@ -178,13 +200,26 @@ export default function Movies() {
 
 			<Outlet />
 
-			<ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-				{movies.map(movie => (
-					<li key={movie.id}>
-						<Card>
-							<CardHeader>
-								<div className="flex gap-8 items-start">
-									{/* <div className="w-20 h-20 bg-slate-400 rounded-md">
+			<InfiniteScroller
+				loadNext={() => {
+					const pageNumber = fetcher.data?.movies
+						? fetcher.data.page + 1
+						: page + 1
+					const query = new URLSearchParams({ page: String(pageNumber) })
+					if (search) {
+						query.set('s', search)
+					}
+					fetcher.load(`/movies?${query}`)
+				}}
+				loading={fetcher.state === 'loading'}
+			>
+				<ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+					{movies.map(movie => (
+						<li key={movie.id}>
+							<Card>
+								<CardHeader>
+									<div className="flex gap-8 items-start">
+										{/* <div className="w-20 h-20 bg-slate-400 rounded-md">
 										{movie.poster ? (
 											<img
 												src={movie.poster}
@@ -193,39 +228,42 @@ export default function Movies() {
 											/>
 										) : null}
 									</div> */}
-									<div className="space-y-4">
-										<CardTitle className="capitalize">{movie.title}</CardTitle>
-										<div className="flex text-xs text-right items-center gap-2">
-											<Telescope className="w-3" /> {movie._count.watchedBy}
+										<div className="space-y-4">
+											<CardTitle className="capitalize">
+												{movie.title}
+											</CardTitle>
+											<div className="flex text-xs text-right items-center gap-2">
+												<Telescope className="w-3" /> {movie._count.watchedBy}
+											</div>
 										</div>
 									</div>
-								</div>
-							</CardHeader>
-							<CardContent className="space-y-10">
-								<p>{movie.plot?.slice(0, 30)}...</p>
+								</CardHeader>
+								<CardContent className="space-y-10">
+									<p>{movie.plot?.slice(0, 30)}...</p>
 
-								{isAuthenticated && (
-									<div className="space-y-2 flex flex-col items-center">
-										<MarkAsWatchedDialog movieId={movie.id} />
-										<watchNextFetcher.Form method="post" className="w-full">
-											<input type="hidden" name="movieId" value={movie.id} />
-											<Button
-												variant="outline"
-												name="intent"
-												value="watch-next"
-												type="submit"
-												className="w-full"
-											>
-												Add to watch next
-											</Button>
-										</watchNextFetcher.Form>
-									</div>
-								)}
-							</CardContent>
-						</Card>
-					</li>
-				))}
-			</ul>
+									{isAuthenticated && (
+										<div className="space-y-2 flex flex-col items-center">
+											<MarkAsWatchedDialog movieId={movie.id} />
+											<watchNextFetcher.Form method="post" className="w-full">
+												<input type="hidden" name="movieId" value={movie.id} />
+												<Button
+													variant="outline"
+													name="intent"
+													value="watch-next"
+													type="submit"
+													className="w-full"
+												>
+													Add to watch next
+												</Button>
+											</watchNextFetcher.Form>
+										</div>
+									)}
+								</CardContent>
+							</Card>
+						</li>
+					))}
+				</ul>
+			</InfiniteScroller>
 		</main>
 	)
 }
@@ -233,7 +271,6 @@ export default function Movies() {
 const MarkAsWatchedDialog = memo(({ movieId }: { movieId: string }) => {
 	const { toast } = useToast()
 	const data = useActionData<typeof action>()
-	console.log('action data', data)
 	const watchedAtFetcher = useFetcher<typeof action>()
 	const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
 
